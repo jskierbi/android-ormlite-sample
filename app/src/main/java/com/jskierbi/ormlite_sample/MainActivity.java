@@ -3,72 +3,87 @@ package com.jskierbi.ormlite_sample;
 import android.os.Bundle;
 import android.support.v7.app.ActionBarActivity;
 import android.util.Log;
-import android.view.Menu;
-import android.view.MenuItem;
-import com.j256.ormlite.android.apptools.OpenHelperManager;
+import butterknife.ButterKnife;
+import butterknife.OnClick;
 import com.j256.ormlite.dao.Dao;
 import com.j256.ormlite.dao.DaoManager;
 import com.j256.ormlite.support.ConnectionSource;
-import com.jskierbi.ormlite_sample.model.Account;
+import com.jskierbi.ormlite_sample.model.Book;
+import com.jskierbi.ormlite_sample.model.Chapter;
 
 import java.sql.SQLException;
+import java.util.ArrayList;
+import java.util.List;
 
 
 public class MainActivity extends ActionBarActivity {
 
   private static final String TAG = MainActivity.class.getSimpleName();
 
+  private Dao<Book, Integer> mBookDao;
+
   @Override
   protected void onCreate(Bundle savedInstanceState) {
     super.onCreate(savedInstanceState);
     setContentView(R.layout.activity_main);
+    ButterKnife.inject(this);
 
-//    DatabaseOpenHelper helper = new DatabaseOpenHelper(getApplicationContext(), "ormlite_base", null, 1);
-    DatabaseOpenHelper helper = OpenHelperManager.getHelper(this, DatabaseOpenHelper.class);
-    ConnectionSource connectionSource = helper.getConnectionSource();
+    ConnectionSource connectionSource = ((App) getApplication()).getDatabaseOpenHelper().getConnectionSource();
+    try {
+      mBookDao = DaoManager.createDao(connectionSource, Book.class);
+    } catch (SQLException e) {
+      e.printStackTrace();
+    }
+  }
 
+  @OnClick(R.id.btn_create_new_book)
+  void createNewBookClick() {
     try {
 
-      Dao<Account, String> accountDao = DaoManager.createDao(connectionSource, Account.class);
+      // create an instance of Book
+      Book book = new Book();
+      book.setName("Jim Coakley");
 
-      // create an instance of Account
-      Account account = new Account();
-      account.setName("Jim Coakley");
+      Chapter chapter = new Chapter("Introduction", "How to use GSON persister with ORMLite");
+      book.setChapter(chapter);
 
-      // persist the account object to the database
-      accountDao.create(account);
+      List<Chapter> chapterList = new ArrayList<>();
+      chapterList.add(new Chapter("One", "How to persist list"));
+      chapterList.add(new Chapter("Two", "How to persist generics"));
+      chapterList.add(new Chapter("Three", "Yogi bear"));
 
-      // retrieve the account from the database by its id field (name)
-      Account account2 = accountDao.queryForId("Jim Coakley");
-      System.out.println("Account: " + account2.getName());
+      book.setChapterList(chapterList);
 
-      // close the connection source
-      connectionSource.close();
+      // persist the book object to the database
+      mBookDao.create(book);
 
     } catch (SQLException ex) {
       Log.e(TAG, "SQL exception!", ex);
     }
+
   }
 
-  @Override
-  public boolean onCreateOptionsMenu(Menu menu) {
-    // Inflate the menu; this adds items to the action bar if it is present.
-    getMenuInflater().inflate(R.menu.menu_main, menu);
-    return true;
-  }
-
-  @Override
-  public boolean onOptionsItemSelected(MenuItem item) {
-    // Handle action bar item clicks here. The action bar will
-    // automatically handle clicks on the Home/Up button, so long
-    // as you specify a parent activity in AndroidManifest.xml.
-    int id = item.getItemId();
-
-    //noinspection SimplifiableIfStatement
-    if (id == R.id.action_settings) {
-      return true;
+  @OnClick(R.id.btn_read_all)
+  void readAllClick() {
+    try {
+      List<Book> bookList = mBookDao.queryForAll();
+      for (Book b : bookList) {
+        Log.d(TAG, "" + b);
+      }
+    } catch (SQLException ex) {
+      Log.e(TAG, "SQL exception", ex);
     }
 
-    return super.onOptionsItemSelected(item);
   }
+
+  @OnClick(R.id.btn_delete_all)
+  void deleteAllClick() {
+    try {
+      int deleted = mBookDao.deleteBuilder().delete();
+      Log.d(TAG, "Deleted: " + deleted);
+    } catch (SQLException ex) {
+      Log.e(TAG, "SQL exception", ex);
+    }
+  }
+
 }
