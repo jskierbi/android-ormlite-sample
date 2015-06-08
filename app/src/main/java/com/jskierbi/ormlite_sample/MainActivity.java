@@ -57,6 +57,10 @@ public class MainActivity extends ActionBarActivity {
       // persist the book object to the database
       mBookDao.create(book);
 
+      Book book2 = new Book();
+      book2.setName("Clark Kent");
+      mBookDao.create(book2);
+
     } catch (SQLException ex) {
       Log.e(TAG, "SQL exception!", ex);
     }
